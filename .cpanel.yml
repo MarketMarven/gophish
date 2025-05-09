@@ -1,0 +1,45 @@
+name: Deploy App to cPanel
+
+on:
+  push:
+    branches:
+      - main # Or your main branch name
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.CPANEL_DEPLOY_KEY }}
+
+      - name: Deploy to cPanel
+        run: |
+          HOST="${{ secrets.CPANEL_HOST }}"
+          USER="${{ secrets.CPANEL_USER }}"
+          REMOTE_PATH="${{ secrets.CPANEL_REMOTE_PATH }}"
+          REPO_URL="git@github.com:${{ github.repository }}.git"
+
+          echo "Deploying to $USER@$HOST:$REMOTE_PATH"
+
+          ssh -o StrictHostKeyChecking=no $USER@$HOST << EOF
+            cd "$REMOTE_PATH"
+
+            # If the repository doesn't exist, clone it
+            if [ ! -d ".git" ]; then
+              git clone "$REPO_URL" .
+            else
+              git pull origin main # Or your main branch name
+            fi
+
+            # Add any build or post-deployment commands here
+            # For example:
+            # bash gophish.sh
+            #
+            #
+            echo "Deployment successful!"
+EOF
